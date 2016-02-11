@@ -1,36 +1,19 @@
-#!/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys
 import os
 import re
 
 from PyQt4 import QtCore, QtGui, uic
-from _winreg import HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
+from winreg import HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
+import winreg
 
-import _winreg
 from EditorRegistro_ui import Ui_Dialog
-from ConnectSQLite import ConectionSQLite
+from connect_sqlite import conectionSQLite
 #http://code.activestate.com/recipes/66011-reading-from-and-writing-to-the-windows-registry/
 
 with open('res.txt', 'w') as outfile: # gorma rapida de vaciar el fichero
 	pass
-
-def creaEntrada(hkey, ruta, nombre, rutaFichero):
-	aReg = _winreg.ConnectRegistry(None, hkey)
-	print r'*** Escribiendo %s\%s ***'%(ruta, nombre)
-	aKey = _winreg.OpenKey(aReg, ruta, 0, _winreg.KEY_WRITE)
-	try:
-		_winreg.SetValueEx(aKey, nombre, 0, _winreg.REG_SZ, rutaFichero) 
-	except EnvironmentError:
-		print 'Encountered problems writing into the Registry...'
-
-	_winreg.CloseKey(aKey)
-	_winreg.CloseKey(aReg)
-
-ruta = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
-rutaFichero = r'C:\Users\procamora\Documents\gestor-series\build\exe.win32-2.7\Series.exe'
-creaEntrada(HKEY_CURRENT_USER, ruta, 'test', rutaFichero)
-
 
 
 class MiFormulario(QtGui.QDialog):
@@ -56,16 +39,16 @@ class MiFormulario(QtGui.QDialog):
 
 
 	def __creaEntrada(self, ruta, nombre, rutaFichero):
-		aReg = _winreg.ConnectRegistry(None, self.valor_hkey)
-		print r'*** Escribiendo %s\%s ***'%(ruta, nombre)
-		aKey = _winreg.OpenKey(aReg, ruta, 0, _winreg.KEY_WRITE)
+		aReg = winreg.ConnectRegistry(None, self.valor_hkey)
+		print(r'*** Escribiendo %s\%s ***'%(ruta, nombre))
+		aKey = winreg.OpenKey(aReg, ruta, 0, winreg.KEY_WRITE)
 		try:
-			_winreg.SetValueEx(aKey, nombre, 0, _winreg.REG_SZ, rutaFichero) 
+			winreg.SetValueEx(aKey, nombre, 0, winreg.REG_SZ, rutaFichero) 
 		except EnvironmentError:
-			print 'Encountered problems writing into the Registry...'
+			print('Encountered problems writing into the Registry...')
 
-		_winreg.CloseKey(aKey)
-		_winreg.CloseKey(aReg)
+		winreg.CloseKey(aKey)
+		winreg.CloseKey(aReg)
 
 
 	def __borraEntrada(self):
@@ -73,15 +56,14 @@ class MiFormulario(QtGui.QDialog):
 			nombre = i.split(' ')[0]
 			ruta = i.split('|')[-1]
 
-			aReg = _winreg.ConnectRegistry(None, self.valor_hkey)
-			print r'*** Borrando  %s\%s ***'%(ruta, nombre)
-			aKey = _winreg.OpenKey(aReg, ruta, 0, _winreg.KEY_ALL_ACCESS)
+			aReg = winreg.ConnectRegistry(None, self.valor_hkey)
+			print(r'*** Borrando  %s\%s ***'%(ruta, nombre))
+			aKey = winreg.OpenKey(aReg, ruta, 0, winreg.KEY_ALL_ACCESS)
 
-			_winreg.DeleteValue(aKey, nombre)
+			winreg.DeleteValue(aKey, nombre)
 
-			_winreg.CloseKey(aKey)
-			_winreg.CloseKey(aReg)
-
+			winreg.CloseKey(aKey)
+			winreg.CloseKey(aReg)
 
 
 	def __muestraEntradas(self):
@@ -97,25 +79,23 @@ class MiFormulario(QtGui.QDialog):
 				self.valor_hkey = HKEY_CURRENT_USER
 			
 
-			aReg = _winreg.ConnectRegistry(None, self.valor_hkey)
+			aReg = winreg.ConnectRegistry(None, self.valor_hkey)
 
-			aKey = _winreg.OpenKey(aReg, i['Ruta']) 
-			for j in range(_winreg.QueryInfoKey(aKey)[1]):
+			aKey = winreg.OpenKey(aReg, i['Ruta']) 
+			for j in range(winreg.QueryInfoKey(aKey)[1]):
 				try:
-					n,v,t = _winreg.EnumValue(aKey, j)
+					n,v,t = winreg.EnumValue(aKey, j)
 					with open('res.txt', 'a') as outfile:
 						outfile.write('%s %s %s %s\n'%(j, n, v, t))
 					#print i, n, v, t
 					self.dictReg.append(r'%s    |%s    |%s'%(n, v, i['Ruta']))
 
 				except EnvironmentError:
-					print 'You have',j ,' tasks starting at logon...'
+					print('You have',j ,' tasks starting at logon...')
 					break
 
-			_winreg.CloseKey(aKey)
-			_winreg.CloseKey(aReg)
-
-
+			winreg.CloseKey(aKey)
+			winreg.CloseKey(aReg)
 
 
 	def __sacaSeries(self):
@@ -123,12 +103,11 @@ class MiFormulario(QtGui.QDialog):
 		Saca todas las series de la bd y las mete en una lista de diccionarios accesible en todo el objeto
 		'''
 		query = '''SELECT Rutas.Ruta, Hkey.HKEY  FROM Rutas  INNER JOIN Hkey ON Hkey.ID = Rutas.id_Hkey'''
-		self.datos = ConectionSQLite(self.db, query, True)
+		self.datos = conectionSQLite(self.db, query, True)
 
 		self.ui.radioButtonFinalizada.setChecked(True)
 		self.__muestraEntradas()
 		self.__buttonAct(self.dictReg)
-
 
 
 	def __buttonAct(self, seriesTest):
@@ -162,8 +141,8 @@ class MiFormulario(QtGui.QDialog):
 		'''
 		
 		for i in self.QueryCompleta:    
-			print i
-			ConectionSQLite(self.db, i)
+			print(i)
+			conectionSQLite(self.db, i)
 
 		self.QueryCompleta = list()
 
@@ -186,7 +165,7 @@ class MiFormulario(QtGui.QDialog):
 				query = r'%s'%i.text()
 				self.QueryCompleta.append(query)
 
-		print self.QueryCompleta
+		print(self.QueryCompleta)
 
 
 	@staticmethod
